@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="referrer" content="no-referrer">
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
-    <title>极速蓝光影视 - Free Cinema</title>
+    <title>极速蓝光影视 - AI Edition</title>
     <!-- 核心庫 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -79,6 +79,17 @@
         .comment-scroll { mask-image: linear-gradient(transparent, black 10%, black 90%, transparent); -webkit-mask-image: linear-gradient(transparent, black 10%, black 90%, transparent); }
         .vip-diamond { background: linear-gradient(135deg, #e0f2fe 0%, #38bdf8 50%, #0284c7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; }
         .svip-gold { background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #a16207 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; }
+        
+        /* 新增：预览图闪烁更新动画 */
+        .preview-refresh { animation: flash 0.5s; }
+        @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; filter: brightness(1.5); } 100% { opacity: 1; } }
+        
+        /* 播放器加载层 */
+        .player-loader { position: absolute; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 50; }
+
+        /* AI 按钮动画 */
+        .ai-sparkle { background: linear-gradient(45deg, #8b5cf6, #d946ef); animation: sparkle 2s infinite; }
+        @keyframes sparkle { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
     </style>
 </head>
 <body class="pb-24">
@@ -148,8 +159,15 @@
                     </div>
                     
                     <div id="adultLiveSection" class="hidden mb-8">
-                        <h3 class="text-lg font-bold text-pink-500 mb-3 flex items-center gap-2"><i class="fas fa-fire"></i> 午夜剧场 <span class="text-[10px] bg-pink-500/20 px-2 py-0.5 rounded text-pink-300">VIP</span></h3>
-                        <div id="adultLiveGrid" class="grid grid-cols-1 gap-3"></div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-pink-500 flex items-center gap-2"><i class="fas fa-fire"></i> 实时监控 <span class="text-[10px] bg-pink-500/20 px-2 py-0.5 rounded text-pink-300">VIP</span></h3>
+                            <div class="flex items-center gap-1 text-[10px] text-green-400">
+                                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                实时画面同步中
+                            </div>
+                        </div>
+                        <!-- 修改为双列网格 -->
+                        <div id="adultLiveGrid" class="grid grid-cols-2 gap-3"></div>
                     </div>
 
                     <div class="mb-8">
@@ -170,6 +188,7 @@
 
                     <div id="liveTouchArea" class="w-full h-full relative">
                         <div id="livePlayerContainer" class="w-full h-full bg-black"></div>
+                        <div id="liveLoadingIndicator" class="player-loader hidden"><div class="loader"></div></div>
                         
                         <div class="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/80 to-transparent z-20 flex justify-between pointer-events-none">
                             <button onclick="toggleEpg()" class="pointer-events-auto bg-white/20 px-3 py-1 rounded-full text-xs text-white backdrop-blur"><i class="fas fa-list"></i> 选台</button>
@@ -190,7 +209,7 @@
 
                 <div id="rankView" class="hidden px-4"></div>
                 
-                <!-- 我的页面 (已修复元素缺失问题) -->
+                <!-- 我的页面 -->
                 <div id="profileView" class="hidden px-4 pt-4 pb-10">
                     <div class="flex items-center gap-4 mb-8 relative z-10">
                         <div class="relative w-16 h-16 cursor-pointer group" onclick="updateNickname()">
@@ -213,7 +232,6 @@
                     </div>
                     
                     <div id="favGrid" class="grid grid-cols-3 gap-3"></div>
-                    <!-- 核心修复：补全 emptyFav 容器 -->
                     <div id="emptyFav" class="hidden text-center py-20">
                         <div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
                             <i class="fas fa-heart-broken text-2xl text-gray-600"></i>
@@ -252,7 +270,7 @@
                             <p class="text-[9px] text-gray-500 text-center mt-2">提示：由于安全策略，部分直播源需跳转到原生播放器</p>
                         </div>
 
-                        <!-- 氛围组：虚拟评论区 (已修复动画) -->
+                        <!-- 氛围组：虚拟评论区 -->
                         <div class="mb-8">
                             <div class="flex items-center gap-2 mb-3">
                                 <span class="w-1 h-3 bg-purple-500 rounded-full"></span>
@@ -264,8 +282,12 @@
                         </div>
 
                         <div id="epList" class="grid grid-cols-3 gap-2 mb-8 mt-4"></div>
-                        <div class="bg-white/5 p-4 rounded-2xl mb-10">
-                            <p id="pContent" class="text-xs text-gray-400 leading-relaxed"></p>
+                        <div class="bg-white/5 p-4 rounded-2xl mb-10 relative">
+                            <!-- AI 剧情详解按钮 -->
+                            <button onclick="handleAIPlot()" class="absolute top-2 right-2 ai-sparkle px-2 py-1 rounded text-[10px] font-bold text-white flex items-center gap-1 hover:scale-105 transition-transform z-10">
+                                <i class="fas fa-magic"></i> AI 剧情详解
+                            </button>
+                            <p id="pContent" class="text-xs text-gray-400 leading-relaxed min-h-[60px]">正在加载剧情信息...</p>
                         </div>
 
                         <div class="mt-10">
@@ -292,9 +314,15 @@
             </nav>
 
             <div id="searchOverlay" class="fixed inset-0 z-[2000] glass flex-col p-6 hidden fixed-w-limit">
-                <div class="flex items-center gap-4 mb-8">
-                    <input id="mobileSearchInput" type="text" placeholder="全網極速搜索..." class="flex-1 bg-white/10 border border-white/10 rounded-full py-3 px-6 focus:outline-none text-white text-sm">
-                    <button onclick="toggleSearch()" class="text-gray-400 font-bold text-sm cursor-pointer hover:text-white">取消</button>
+                <div class="flex items-center gap-2 mb-8">
+                    <div class="relative flex-1">
+                        <input id="mobileSearchInput" type="text" placeholder="试试：我想看周星驰的搞笑电影..." class="w-full bg-white/10 border border-white/10 rounded-full py-3 pl-6 pr-24 focus:outline-none text-white text-sm">
+                        <!-- AI 搜片按钮 -->
+                        <button onclick="handleAISearch()" class="absolute right-1 top-1/2 -translate-y-1/2 ai-sparkle px-3 py-1.5 rounded-full text-[10px] font-bold text-white flex items-center gap-1 hover:scale-105 transition-transform">
+                            <i class="fas fa-magic"></i> AI 搜片
+                        </button>
+                    </div>
+                    <button onclick="toggleSearch()" class="text-gray-400 font-bold text-sm cursor-pointer hover:text-white px-2">取消</button>
                 </div>
             </div>
         </div>
@@ -312,34 +340,55 @@
             { name: '新浪資源', url: 'https://api.xinlangapi.com/xinlangapi.php/provide/vod/from/xlm3u8/at/json', parser: 'https://www.xinlangjiexi.com/m3u8/?url=' }
         ];
 
+        // 核心更新：移除了 mitv:// 协议的源，恢复并扩充了标准 HTTP/HTTPS 直播源
         const ADULT_LIVE = [
-            { name: "Live Cams", url: "http://live.adultiptv.net/livecams.m3u8" },
-            { name: "MILF", url: "http://live.adultiptv.net/milf.m3u8" },
-            { name: "Big Dick", url: "http://live.adultiptv.net/bigdick.m3u8" },
-            { name: "Big Tits", url: "http://live.adultiptv.net/bigtits.m3u8" },
-            { name: "Fetish", url: "http://live.adultiptv.net/fetish.m3u8" },
-            { name: "Pornstar", url: "http://live.adultiptv.net/pornstar.m3u8" },
-            { name: "Asian", url: "http://live.adultiptv.net/asian.m3u8" },
-            { name: "Big Ass", url: "http://live.adultiptv.net/bigass.m3u8" },
-            { name: "Interracial", url: "http://live.adultiptv.net/interracial.m3u8" },
-            { name: "Latina", url: "http://live.adultiptv.net/latina.m3u8" },
-            { name: "POV", url: "http://live.adultiptv.net/pov.m3u8" },
-            { name: "Blowjob", url: "http://live.adultiptv.net/blowjob.m3u8" },
-            { name: "Hardcore", url: "http://live.adultiptv.net/hardcore.m3u8" },
-            { name: "Cuckold", url: "http://live.adultiptv.net/cuckold.m3u8" },
-            { name: "Threesome", url: "http://live.adultiptv.net/threesome.m3u8" },
-            { name: "Russian", url: "http://live.adultiptv.net/russian.m3u8" },
-            { name: "Lesbian", url: "http://live.adultiptv.net/lesbian.m3u8" },
-            { name: "Rough", url: "http://live.adultiptv.net/rough.m3u8" },
-            { name: "Gangbang", url: "http://live.adultiptv.net/gangbang.m3u8" },
-            { name: "Anal", url: "http://live.adultiptv.net/anal.m3u8" },
-            { name: "Compilation", url: "http://live.adultiptv.net/compilation.m3u8" },
-            { name: "Brunette", url: "http://live.adultiptv.net/brunette.m3u8" },
-            { name: "Blonde", url: "http://live.adultiptv.net/blonde.m3u8" },
-            { name: "Gay", url: "http://live.adultiptv.net/gay.m3u8" }
+            { name: "Live Cams", url: "http://cdn.adultiptv.net/livecams.m3u8" },
+            { name: "Asian", url: "http://cdn.adultiptv.net/asian.m3u8" },
+            { name: "Amateur", url: "http://cdn.adultiptv.net/amateur.m3u8" },
+            { name: "Anal", url: "http://cdn.adultiptv.net/anal.m3u8" },
+            { name: "Big Ass", url: "http://cdn.adultiptv.net/bigass.m3u8" },
+            { name: "Big Dick", url: "http://cdn.adultiptv.net/bigdick.m3u8" },
+            { name: "Big Tits", url: "http://cdn.adultiptv.net/bigtits.m3u8" },
+            { name: "Bisexual", url: "http://cdn.adultiptv.net/bisexual.m3u8" },
+            { name: "Blonde", url: "http://cdn.adultiptv.net/blonde.m3u8" },
+            { name: "Blowjob", url: "http://cdn.adultiptv.net/blowjob.m3u8" },
+            { name: "Bondage", url: "http://cdn.adultiptv.net/bondage.m3u8" },
+            { name: "Brunette", url: "http://cdn.adultiptv.net/brunette.m3u8" },
+            { name: "Compilation", url: "http://cdn.adultiptv.net/compilation.m3u8" },
+            { name: "Cosplay", url: "http://cdn.adultiptv.net/cosplay.m3u8" },
+            { name: "Couples", url: "http://cdn.adultiptv.net/couples.m3u8" },
+            { name: "Creampie", url: "http://cdn.adultiptv.net/creampie.m3u8" },
+            { name: "Cuckold", url: "http://cdn.adultiptv.net/cuckold.m3u8" },
+            { name: "Ebony", url: "http://cdn.adultiptv.net/ebony.m3u8" },
+            { name: "Fetish", url: "http://cdn.adultiptv.net/fetish.m3u8" },
+            { name: "Gangbang", url: "http://cdn.adultiptv.net/gangbang.m3u8" },
+            { name: "Gay", url: "http://cdn.adultiptv.net/gay.m3u8" },
+            { name: "Hardcore", url: "http://cdn.adultiptv.net/hardcore.m3u8" },
+            { name: "Hentai", url: "http://cdn.adultiptv.net/hentai.m3u8" },
+            { name: "Interracial", url: "http://cdn.adultiptv.net/interracial.m3u8" },
+            { name: "Latina", url: "http://cdn.adultiptv.net/latina.m3u8" },
+            { name: "Lesbian", url: "http://cdn.adultiptv.net/lesbian.m3u8" },
+            { name: "Mature", url: "http://cdn.adultiptv.net/mature.m3u8" },
+            { name: "MILF", url: "http://cdn.adultiptv.net/milf.m3u8" },
+            { name: "Pornstar", url: "http://cdn.adultiptv.net/pornstar.m3u8" },
+            { name: "POV", url: "http://cdn.adultiptv.net/pov.m3u8" },
+            { name: "Public", url: "http://cdn.adultiptv.net/public.m3u8" },
+            { name: "Rough", url: "http://cdn.adultiptv.net/rough.m3u8" },
+            { name: "Russian", url: "http://cdn.adultiptv.net/russian.m3u8" },
+            { name: "Striptease", url: "http://cdn.adultiptv.net/striptease.m3u8" },
+            { name: "Teen", url: "http://cdn.adultiptv.net/teen.m3u8" },
+            { name: "Threesome", url: "http://cdn.adultiptv.net/threesome.m3u8" },
+            { name: "Transgender", url: "http://cdn.adultiptv.net/transgender.m3u8" },
+            { name: "VR Porn", url: "http://cdn.adultiptv.net/vr.m3u8" },
+            { name: "XXX Mix", url: "https://d12a2vxqkkh1bo.cloudfront.net/hls/1080p/playlist.m3u8" }
         ];
 
         const GLOBAL_LIVE = [
+            { name: "【HBO】Asia", url: "https://dai.google.com/linear/hls/event/w8_7s433R_6X9_S433R_6g/master.m3u8" },
+            { name: "【Discovery】Science", url: "https://d2e1asnsl7br7b.cloudfront.net/7782e205e72f43aeb4a48ec97f66ebbe/index_5.m3u8" },
+            { name: "【Nat Geo】Wild", url: "https://wildearth-plex.amagi.tv/masterR1080p.m3u8" },
+            { name: "【MTV】Music", url: "https://stream-us-east-1.getpublica.com/playlist.m3u8?network_id=53" },
+            { name: "【K-POP】SBS M", url: "https://sbs-live.akamaized.net/hls/live/2002381/sbs_m/playlist.m3u8" },
             { name: "【日本】NHK World", url: "https://nhkwlive-ojp.akamaized.net/hls/live/2003459/nhkwlive-ojp-en/index.m3u8" },
             { name: "【日本】富士电视台", url: "https://fujitv4.mov3.co/hls/fujitv.m3u8" },
             { name: "【日本】TBS", url: "https://tbs4.mov3.co/hls/tbs.m3u8" },
@@ -374,13 +423,92 @@
             appId: "1:768460898395:web:b456c8dcbc13095df8ff7e"
         };
 
+        const GEMINI_API_KEY = ""; // 系统会自动注入 Key
+
         let CONFIG = { sources: [], proxies: [(url) => `https://corsproxy.io/?${encodeURIComponent(url)}`, (url) => url] };
         let state = {
             page: 1, typeId: '', keyword: '', activeSourceIdx: 0,
             movies: [], classes: [], swiper: null, currentTab: 'home',
             allPool: [], mode: 'none', current: null, favorites: [], user: null, db: null,
-            liveList: [], liveIndex: 0, liveDp: null, touchStartY: 0, commentInterval: null, dp: null
+            liveList: [], liveIndex: 0, liveDp: null, touchStartY: 0, commentInterval: null, dp: null,
+            previewInterval: null
         };
+
+        // --- GEMINI AI 逻辑 ---
+        
+        async function callGemini(prompt) {
+            if (!GEMINI_API_KEY) {
+                console.warn("Gemini API Key missing");
+                return null;
+            }
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }]
+                    })
+                });
+                if (!response.ok) throw new Error('API Error');
+                const data = await response.json();
+                return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+            } catch (error) {
+                console.error("Gemini Error:", error);
+                return null;
+            }
+        }
+
+        async function handleAISearch() {
+            const input = document.getElementById('mobileSearchInput');
+            const userQuery = input.value.trim();
+            if (!userQuery) return showToast('请先输入您想看的内容描述');
+            
+            showToast('AI 正在思考中...');
+            input.value = "AI 正在分析您的需求...";
+            input.disabled = true;
+
+            const prompt = `你是一个影视搜索助手。用户想看："${userQuery}"。请分析用户意图，提供1个最可能在影视资源站（通常使用中文片名）搜到资源的中文关键词。如果用户描述的是类型（如“恐怖片”），就返回类型词；如果是具体电影描述，就返回电影名。只返回关键词，不要标点符号，不要解释。`;
+
+            const keyword = await callGemini(prompt);
+            
+            input.disabled = false;
+            if (keyword) {
+                const cleanKeyword = keyword.replace(/\n/g, '').trim();
+                input.value = cleanKeyword;
+                state.keyword = cleanKeyword;
+                state.page = 1;
+                showToast(`AI为您推荐关键词：${cleanKeyword}`);
+                toggleSearch();
+                fetchData(1);
+            } else {
+                input.value = userQuery;
+                showToast('AI 暂时无法连接，已使用原词搜索');
+                state.keyword = userQuery;
+                state.page = 1;
+                toggleSearch();
+                fetchData(1);
+            }
+        }
+
+        async function handleAIPlot() {
+            if (!state.current) return;
+            const pContent = document.getElementById('pContent');
+            const originalText = pContent.innerText;
+            pContent.innerHTML = '<span class="animate-pulse">✨ AI 正在撰写剧情...</span>';
+            
+            const prompt = `请用中文简要介绍影视作品《${state.current.vod_name}》的剧情梗概。要求：100字以内，语言生动吸引人，适合作为影视推荐文案。不要剧透结局。`;
+            
+            const summary = await callGemini(prompt);
+            
+            if (summary) {
+                pContent.innerText = summary;
+                showToast('AI 剧情生成完毕');
+            } else {
+                pContent.innerText = originalText;
+                showToast('AI 生成失败');
+            }
+        }
 
         // --- 核心邏輯函數 ---
         
@@ -390,6 +518,7 @@
             if (state.dp) { state.dp.destroy(); state.dp = null; }
             if (state.liveDp) { state.liveDp.destroy(); state.liveDp = null; }
             if (state.commentInterval) clearInterval(state.commentInterval);
+            if (state.previewInterval) clearInterval(state.previewInterval); // 停止预览刷新
             switchTab('home'); 
         }
 
@@ -471,15 +600,28 @@
              }
         }
 
+        // 修改：双列网格渲染 + 预览图逻辑
         function renderLiveSection() {
-            document.getElementById('adultLiveGrid').innerHTML = ADULT_LIVE.map((c,i) => `
-                <div onclick="startLivePlay('adult', ${i})" class="live-card p-3 rounded-xl flex items-center gap-3 active:scale-95 transition-transform">
-                    <div class="w-10 h-10 rounded-full bg-pink-600 flex items-center justify-center text-white"><i class="fas fa-lock"></i></div>
-                    <div class="flex-1 text-white text-sm font-bold">${c.name}</div>
-                    <div class="text-[10px] live-badge-adult px-2 rounded text-white font-bold">VIP LIVE</div>
+            // 渲染成人区（网格带预览）
+            document.getElementById('adultLiveGrid').innerHTML = ADULT_LIVE.map((c,i) => {
+                // 生成一个随机的占位符ID，模拟不同的频道封面
+                const seed = 100 + i; 
+                return `
+                <div onclick="startLivePlay('adult', ${i})" class="relative group cursor-pointer overflow-hidden rounded-xl bg-gray-800 aspect-video shadow-lg active:scale-95 transition-transform">
+                    <img id="live-preview-${i}" src="https://picsum.photos/300/200?random=${seed}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
+                    <div class="absolute top-2 right-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse">● LIVE</div>
+                    <div class="absolute bottom-2 left-2 right-2">
+                        <h4 class="text-white text-xs font-bold truncate text-shadow">${c.name}</h4>
+                        <div class="flex items-center gap-1 mt-1">
+                            <span class="text-[8px] bg-white/20 px-1 rounded text-gray-300">HD</span>
+                            <span class="text-[8px] text-pink-400">正在播放...</span>
+                        </div>
+                    </div>
                 </div>
-            `).join('');
+            `}).join('');
 
+            // 渲染全球卫视（保持列表）
             document.getElementById('globalLiveGrid').innerHTML = GLOBAL_LIVE.map((c,i) => `
                 <div onclick="startLivePlay('global', ${i})" class="live-card p-3 rounded-xl flex items-center gap-3 active:scale-95 transition-transform">
                     <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white"><i class="fas fa-globe"></i></div>
@@ -489,14 +631,48 @@
             `).join('');
         }
 
+        // 新增：模拟预览图实时刷新
+        function startPreviewRefresher() {
+            if (state.previewInterval) clearInterval(state.previewInterval);
+            
+            // 每5秒刷新一次图片，模拟实时直播帧
+            state.previewInterval = setInterval(() => {
+                if(state.currentTab !== 'live') return;
+                
+                // 随机挑选几个卡片进行刷新，避免全部同时闪烁太假
+                const count = ADULT_LIVE.length;
+                const indexesToRefresh = Array.from({length: 3}, () => Math.floor(Math.random() * count));
+                
+                indexesToRefresh.forEach(idx => {
+                    const img = document.getElementById(`live-preview-${idx}`);
+                    if(img) {
+                        const newTime = Date.now();
+                        // 重新加载图片，添加 class 触发动画
+                        img.src = `https://picsum.photos/300/200?random=${idx}&t=${newTime}`;
+                        img.classList.remove('preview-refresh');
+                        void img.offsetWidth; // 触发重绘
+                        img.classList.add('preview-refresh');
+                    }
+                });
+            }, 5000);
+        }
+
         function startLivePlay(type, index) {
             state.liveList = type === 'adult' ? ADULT_LIVE : GLOBAL_LIVE;
             state.liveIndex = index;
             document.getElementById('liveRoom').classList.remove('hidden');
             document.querySelector('header').classList.add('-translate-y-full');
             document.querySelector('nav').classList.add('translate-y-full');
+            
+            // 显示 Loading
+            document.getElementById('liveLoadingIndicator').classList.remove('hidden');
+            
             renderEpg();
-            playCurrentLive();
+            
+            // 核心修复：延迟初始化播放器，解决黑屏问题
+            setTimeout(() => {
+                playCurrentLive();
+            }, 300); // 300ms 延迟，等待 DOM 动画完成
             
             const touchArea = document.getElementById('liveTouchArea');
             touchArea.addEventListener('touchstart', e => state.touchStartY = e.touches[0].clientY);
@@ -530,21 +706,52 @@
 
         function changeLiveLine(lineIdx) {
             const url = state.liveList[state.liveIndex].url;
-            const safeUrl = url.replace('http://', 'https://'); 
+            const safeUrl = url.replace('mitv://', 'http://'); // 自动协议修正
             const container = document.getElementById('livePlayerContainer');
-            container.innerHTML = '';
             
-            if(state.liveDp) { state.liveDp.destroy(); state.liveDp = null; }
-
-            if (lineIdx === 0) {
-                state.liveDp = new DPlayer({ container: container, live: true, video: { url: safeUrl, type: 'hls' }, autoplay: true, theme: '#e50914' });
-                state.liveDp.on('error', () => { showToast('直连失败，自动切线路2...'); changeLiveLine(1); });
-            } else {
-                const iframe = document.createElement('iframe');
-                iframe.className = "w-full h-full border-none";
-                iframe.src = 'https://www.playm3u8.cn/jiexi.php?url=' + encodeURIComponent(safeUrl);
-                container.appendChild(iframe);
+            // 销毁旧实例
+            if(state.liveDp) { 
+                state.liveDp.destroy(); 
+                state.liveDp = null; 
             }
+            container.innerHTML = '';
+            document.getElementById('liveLoadingIndicator').classList.remove('hidden');
+
+            // 核心修复：确保容器清空后再初始化
+            setTimeout(() => {
+                if (lineIdx === 0) {
+                    try {
+                        state.liveDp = new DPlayer({ 
+                            container: container, 
+                            live: true, 
+                            video: { url: safeUrl, type: 'hls' }, 
+                            autoplay: true, 
+                            theme: '#e50914' 
+                        });
+                        
+                        // 监听加载事件
+                        state.liveDp.on('canplay', () => {
+                            document.getElementById('liveLoadingIndicator').classList.add('hidden');
+                            state.liveDp.play(); // 强制播放
+                        });
+                        
+                        state.liveDp.on('error', () => { 
+                            showToast('直连失败，尝试解析模式...'); 
+                            changeLiveLine(1); 
+                        });
+                    } catch(e) {
+                        console.error(e);
+                        changeLiveLine(1);
+                    }
+                } else {
+                    // 解析模式
+                    const iframe = document.createElement('iframe');
+                    iframe.className = "w-full h-full border-none";
+                    iframe.src = 'https://www.playm3u8.cn/jiexi.php?url=' + encodeURIComponent(safeUrl);
+                    iframe.onload = () => document.getElementById('liveLoadingIndicator').classList.add('hidden');
+                    container.appendChild(iframe);
+                }
+            }, 100);
         }
 
         function renderEpg() {
@@ -580,14 +787,28 @@
         async function fetchData(page=1) {
             const container = document.getElementById('movieGrid');
             if(page===1) container.innerHTML = Array(6).fill('<div class="skeleton aspect-[2/3] rounded-2xl"></div>').join('');
+            
             const source = CONFIG.sources[state.activeSourceIdx].url;
+            
+            // 修复搜索参数构造，处理源可能不支持搜索的情况
             const target = `${source}?ac=detail&pg=${page}${state.typeId?'&t='+state.typeId:''}${state.keyword?'&wd='+state.keyword:''}`;
+            
             const data = await fastRaceFetch(target);
+            
             if(data && data.list) {
                 state.movies = data.list;
                 state.page = page;
                 renderGrid();
                 renderRecommend();
+            } else {
+                if(page === 1) {
+                    // 如果是第一页且没有数据（可能源报错了），显示友好提示
+                    if(state.keyword) {
+                         container.innerHTML = '<div class="col-span-2 text-center text-gray-500 py-10 flex flex-col items-center"><i class="fas fa-search-minus text-4xl mb-2"></i><p>未找到相关内容或源暂不支持搜索</p><button onclick="switchSource((state.activeSourceIdx + 1) % CONFIG.sources.length)" class="mt-4 text-xs bg-red-600 px-3 py-1 rounded text-white">切换源重试</button></div>';
+                    } else {
+                         container.innerHTML = '<div class="col-span-2 text-center text-gray-500 py-10">暂无数据或加载失败</div>';
+                    }
+                }
             }
         }
 
@@ -597,10 +818,17 @@
                 const resp = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
                 if (!resp.ok) throw new Error('Fetch failed');
                 const text = await resp.text(); // 先取文本，防止 JSON 解析崩潰
-                try {
-                    return JSON.parse(text);
-                } catch(e) {
-                    console.error("JSON Parse Error", e);
+                
+                // 简单检查是否可能是JSON
+                if (text.trim().startsWith('{')) {
+                    try {
+                        return JSON.parse(text);
+                    } catch(e) {
+                        console.warn("JSON Parse Warning: Response might not be valid JSON", text.substring(0, 50));
+                        return null;
+                    }
+                } else {
+                    console.warn("API returned non-JSON text:", text.substring(0, 50));
                     return null;
                 }
             } catch(e) { console.error(e); return null; }
@@ -657,6 +885,9 @@
             updateFavIcon();
             startFakeComments();
             refreshRecommend();
+            
+            // 重置 AI 剧情
+            document.getElementById('pContent').innerText = '正在获取资源信息...';
         }
         
         async function switchSource(idx) { state.activeSourceIdx = idx; await initApp(); }
@@ -668,6 +899,13 @@
             
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             document.getElementById('tab-'+tab).classList.add('active');
+            
+            // 切换到直播Tab时启动预览刷新，否则关闭以节省性能
+            if(tab === 'live') {
+                startPreviewRefresher();
+            } else {
+                if(state.previewInterval) clearInterval(state.previewInterval);
+            }
             
             if (tab === 'profile') renderProfile();
         }
@@ -685,6 +923,9 @@
             updateFavIcon();
             startFakeComments();
             refreshRecommend();
+
+            // 重置 AI 剧情
+            document.getElementById('pContent').innerText = '正在获取资源信息...';
         }
 
         function toggleSearch() {
